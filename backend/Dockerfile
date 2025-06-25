@@ -24,4 +24,6 @@ COPY src/ ./src/
 # Install the project itself
 RUN poetry install --no-interaction --no-ansi
 
-CMD ["python", "-m", "src"]
+ENV PYTHONPATH=/app
+
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

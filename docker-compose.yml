@@ -6,12 +6,13 @@ services:
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/executive_ai
       - REDIS_URL=redis://redis:6379
+      - PYTHONPATH=/app
     depends_on:
       - db
       - redis
     volumes:
       - ./backend:/app
-    command: python -m src
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
 
   db:
     image: postgres:15
