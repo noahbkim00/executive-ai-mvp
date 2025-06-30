@@ -7,6 +7,8 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/executive_ai
       - REDIS_URL=redis://redis:6379
       - PYTHONPATH=/app
+    env_file:
+      - ./backend/.env
     depends_on:
       - db
       - redis

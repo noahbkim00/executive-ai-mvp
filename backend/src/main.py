@@ -6,7 +6,7 @@ from fastapi.responses import RedirectResponse
 
 from .config import get_settings
 from .logger import logger
-from .routers import health
+from .routers import health, chat
 
 settings = get_settings()
 
@@ -27,6 +27,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(health.router, prefix="/health")
+app.include_router(chat.router)
 
 @app.get("/")
 async def root():

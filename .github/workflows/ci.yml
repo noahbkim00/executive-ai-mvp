@@ -53,9 +53,13 @@ jobs:
     - name: Run Python tests
       run: |
         cd backend
-        poetry run pytest -q || true
-      continue-on-error: true
+        poetry run pytest -v
     
     - name: Run frontend lint
-      run: npm run lint --prefix ui || true
-      continue-on-error: true
+      run: npm run lint --prefix ui
+    
+    - name: Run TypeScript check
+      run: npx tsc --noEmit --prefix ui
+    
+    - name: Build frontend
+      run: npm run build --prefix ui

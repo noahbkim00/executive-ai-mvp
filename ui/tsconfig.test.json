@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": false,
+    "noEmit": false,
+    "declaration": false,
+    "sourceMap": true,
+    "types": ["jest", "@testing-library/jest-dom", "node"]
+  },
+  "include": [
+    "src/**/*",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx"
+  ]
+}

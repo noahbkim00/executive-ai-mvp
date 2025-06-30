@@ -1,0 +1,43 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.app-header {
+  text-align: center;
+  padding: 2rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+
+.app-header p {
+  margin: 0.5rem 0 0;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.app-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 2rem;
+  min-height: 0;
+}
+
+@media (prefers-color-scheme: light) {
+  .app-header {
+    border-bottom-color: rgba(0, 0, 0, 0.1);
+  }
+  
+  .app-header p {
+    color: rgba(0, 0, 0, 0.6);
+  }
+}

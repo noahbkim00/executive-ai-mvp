@@ -1,176 +1,275 @@
 # Executive AI MVP
 
-Welcome to the Executive AI MVP project! This guide will help you get up and running quickly.
+A ChatGPT-like web application for candidate analysis, built with React frontend and FastAPI backend powered by LangChain + OpenAI.
 
-## Prerequisites
+## 🚀 Features
 
-Before you begin, ensure you have the following installed:
+- **Interactive Chat Interface**: ChatGPT-style UI for natural conversations
+- **AI-Powered Responses**: OpenAI GPT-4o-mini integration via LangChain
+- **Candidate Analysis Focus**: Specialized prompts for evaluating job candidates
+- **Real-time Communication**: REST API with error handling and loading states
+- **Responsive Design**: Works on desktop and mobile devices
+- **Docker-First Development**: One-command setup with hot reload
 
-- **Python 3.11+** - [Download Python](https://www.python.org/downloads/)
-- **Node.js 20+** - [Download Node.js](https://nodejs.org/)
+## 📋 Prerequisites
+
 - **Docker Desktop** - [Download Docker](https://www.docker.com/products/docker-desktop/)
-- **Poetry** - Python dependency manager (installation instructions below)
+- **OpenAI API Key** - [Get API Key](https://platform.openai.com/api-keys)
 
-## Quick Start with Docker
+Optional for local development:
+- **Node.js 20+** - [Download Node.js](https://nodejs.org/)
+- **Python 3.11+** - [Download Python](https://www.python.org/downloads/)
 
-The fastest way to get the entire stack running:
+## 🏃‍♂️ Quick Start
+
+### 1. Clone and Setup Environment
 
 ```bash
-# Start all services (API, PostgreSQL, Redis)
+git clone <your-repo-url>
+cd executive-ai-mvp
+
+# Create backend environment file
+cp backend/.env.example backend/.env
+# Edit backend/.env and add your OpenAI API key:
+# OPENAI_API_KEY=sk-your-key-here
+```
+
+### 2. Start the Application
+
+```bash
+# Start all services (Backend API + Database + Redis)
 make up
 
-# View logs
+# In a new terminal, start the frontend
+cd ui
+npm install
+npm run dev
+```
+
+### 3. Access the Application
+
+- **Frontend**: http://localhost:5173 (React chat interface)
+- **Backend API**: http://localhost:8000 (FastAPI with auto-docs)
+- **API Documentation**: http://localhost:8000/docs
+
+### 4. Test the Chat
+
+1. Open http://localhost:5173
+2. Type a message like: "What qualities should I look for in a senior software engineer?"
+3. Get AI-powered responses focused on candidate analysis!
+
+## 🛠️ Development Commands
+
+### Docker Commands (Recommended)
+
+```bash
+# Start all backend services
+make up
+
+# View logs from all services
 make logs
 
 # Stop all services
 make down
+
+# Rebuild containers (after dependency changes)
+make rebuild
+
+# Test the API directly
+./test_chat_curl.sh
 ```
 
-This will start:
-- API server on http://localhost:8000
-- PostgreSQL database on localhost:5432
-- Redis cache on localhost:6379
+### Frontend Development
 
-## Local Development Setup
+```bash
+cd ui
 
-### Backend Setup
+# Install dependencies
+npm install
 
-1. **Install Poetry** (if not already installed):
-   ```bash
-   curl -sSL https://install.python-poetry.org | python3 -
-   ```
+# Start development server (with hot reload)
+npm run dev
 
-2. **Install Python dependencies**:
-   ```bash
-   cd backend
-   poetry install
-   ```
+# Run linting
+npm run lint
 
-3. **Activate the virtual environment**:
-   ```bash
-   poetry shell
-   ```
+# Type check
+npx tsc --noEmit
 
-4. **Run the backend** (placeholder for now):
-   ```bash
-   python -m src
-   ```
+# Build for production
+npm run build
+```
 
-### Frontend Setup
+### Backend Development (Local)
 
-1. **Install Node dependencies**:
-   ```bash
-   cd ui
-   npm install
-   ```
-
-2. **Start the development server**:
-   ```bash
-   npm run dev
-   ```
-   
-   The frontend will be available at http://localhost:5173
-
-3. **Run linting**:
-   ```bash
-   npm run lint
-   ```
-
-4. **Build for production**:
-   ```bash
-   npm run build
-   ```
-
-## Running Tests
-
-### Backend Tests
 ```bash
 cd backend
+
+# Install Poetry (if needed)
+curl -sSL https://install.python-poetry.org | python3 -
+
+# Install dependencies
+poetry install
+
+# Run the server locally
+poetry run uvicorn src.main:app --reload
+
+# Run tests
 poetry run pytest
 ```
 
-### Frontend Tests
-```bash
-cd ui
-npm run lint
-```
+## 🏗️ Architecture
 
-## Project Structure
+### Tech Stack
+
+**Frontend:**
+- React 18 + TypeScript
+- Vite (build tool)
+- CSS Modules for styling
+- Fetch API for backend communication
+
+**Backend:**
+- FastAPI (Python web framework)
+- LangChain (AI framework)
+- OpenAI GPT-4o-mini (language model)
+- Pydantic (data validation)
+- Uvicorn (ASGI server)
+
+**Infrastructure:**
+- Docker Compose (development)
+- PostgreSQL 15 (database)
+- Redis 7 (caching/queuing)
+
+### Project Structure
 
 ```
 executive-ai-mvp/
-├── backend/
-│   ├── src/              # Python source code
-│   │   ├── __init__.py
-│   │   └── __main__.py   # Entry point
-│   ├── pyproject.toml    # Python dependencies
-│   ├── poetry.lock       # Locked dependencies
-│   └── Dockerfile        # Backend container definition
-├── ui/
-│   ├── src/              # React source code
-│   ├── package.json      # Node dependencies
-│   └── vite.config.ts    # Vite configuration
-├── docker-compose.yml    # Multi-container setup
-├── Makefile              # Common commands
-└── .github/
-    └── workflows/
-        └── ci.yml        # CI/CD pipeline
+├── backend/                 # FastAPI backend
+│   ├── src/
+│   │   ├── main.py         # FastAPI app entry point
+│   │   ├── config.py       # Settings & environment variables
+│   │   ├── models/         # Pydantic models
+│   │   ├── routers/        # API endpoints
+│   │   │   ├── health.py   # Health check endpoint
+│   │   │   └── chat.py     # Chat API endpoint
+│   │   └── services/       # Business logic
+│   │       └── chat.py     # LangChain + OpenAI integration
+│   ├── pyproject.toml      # Python dependencies
+│   ├── .env.example        # Environment variables template
+│   └── Dockerfile
+├── ui/                      # React frontend  
+│   ├── src/
+│   │   ├── components/     # React components
+│   │   │   ├── ChatContainer.tsx
+│   │   │   ├── MessageList.tsx
+│   │   │   ├── Message.tsx
+│   │   │   └── MessageInput.tsx
+│   │   ├── services/       # API communication
+│   │   │   └── api.ts
+│   │   └── types/          # TypeScript types
+│   │       └── chat.ts
+│   ├── package.json
+│   └── .env                # Frontend environment variables
+├── docker-compose.yml       # Multi-container setup
+├── Makefile                # Common commands
+└── test_chat_curl.sh       # API testing script
 ```
 
-## Docker Architecture
+## 🔧 Configuration
 
-Our Docker setup includes three services:
+### Environment Variables
 
-1. **API** - Python backend application
-   - Built from `backend/Dockerfile`
-   - Runs on port 8000
-   - Auto-reloads on code changes
+**Backend (`backend/.env`):**
+```env
+# Required
+OPENAI_API_KEY=sk-your-openai-api-key-here
 
-2. **PostgreSQL** - Primary database
-   - Version: 15
-   - Port: 5432
-   - Credentials: postgres/postgres
-   - Database name: executive_ai
+# Optional
+LANGCHAIN_TRACING_V2=false
+LANGCHAIN_API_KEY=your-langsmith-api-key-here
+```
 
-3. **Redis** - Caching and queuing
-   - Version: 7-alpine
-   - Port: 6379
+**Frontend (`ui/.env`):**
+```env
+VITE_API_URL=http://localhost:8000
+```
 
-## Environment Variables
+### API Endpoints
 
-The Docker setup automatically configures:
-- `DATABASE_URL`: PostgreSQL connection string
-- `REDIS_URL`: Redis connection string
+- `GET /` - Redirects to API documentation
+- `GET /health/live` - Liveness check
+- `GET /health/ready` - Readiness check  
+- `POST /api/chat/` - Send message, get AI response
 
-## Continuous Integration
+### Chat API Usage
 
-Our CI pipeline runs on every push and pull request:
-- Python dependency installation
-- Node.js dependency installation
-- Python tests (when available)
-- Frontend linting
+```bash
+curl -X POST "http://localhost:8000/api/chat/" \
+  -H "Content-Type: application/json" \
+  -d '{"message": "What makes a good product manager?"}'
+```
 
-## Common Issues
+## 🐛 Troubleshooting
 
-### Docker not starting?
+### Common Issues
+
+**"OPENAI_API_KEY not set" error:**
+- Ensure you've created `backend/.env` with your API key
+- Restart containers after adding the key: `make down && make up`
+
+**API not connecting:**
+- Check if backend is running: `make logs`
+- Verify CORS settings in `backend/src/main.py`
+- Ensure frontend is using correct API URL
+
+**Frontend not loading:**
+- Check if port 5173 is available
+- Run `npm install` in the `ui` directory
+- Clear browser cache and try again
+
+**Docker issues:**
 - Ensure Docker Desktop is running
-- Check if ports 8000, 5432, or 6379 are already in use
+- Check for port conflicts (8000, 5432, 6379)
+- Try rebuilding: `make down && make rebuild && make up`
 
-### Poetry not found?
-- Add Poetry to your PATH: `export PATH="$HOME/.local/bin:$PATH"`
-- Restart your terminal after installation
+### Development Tips
 
-### Module 'src' errors?
-- Make sure you're in the correct directory
-- For backend: `cd backend` before running commands
+**Hot Reload:**
+- Backend: Code changes auto-reload in Docker
+- Frontend: Changes auto-reload with `npm run dev`
 
-## Next Steps
+**Debugging:**
+- Backend logs: `make logs`
+- Frontend: Use browser developer tools
+- API testing: Use `/docs` endpoint or `test_chat_curl.sh`
 
-The backend currently has a placeholder implementation. To build your application:
+**Adding Dependencies:**
+- Backend: Add to `backend/pyproject.toml`, then `make rebuild`
+- Frontend: `npm install <package>` in `ui/` directory
 
-1. Choose a web framework (FastAPI, Flask, Django)
-2. Update `backend/src/__main__.py` with your application code
-3. Add your dependencies to `backend/pyproject.toml`
-4. Create your API endpoints and database models
+## 🚀 Deployment
 
-Happy coding! 🚀
+This is an MVP setup. For production:
+
+1. **Security**: Remove debug mode, add authentication, secure API keys
+2. **Scaling**: Use production ASGI server, container orchestration
+3. **Monitoring**: Add logging, metrics, error tracking
+4. **Database**: Configure production PostgreSQL with migrations
+
+## 🤝 Contributing
+
+1. Create a feature branch
+2. Make your changes
+3. Test with `make up` and `npm run dev`
+4. Run linting: `npm run lint` 
+5. Submit a pull request
+
+## 📝 License
+
+[Add your license here]
+
+---
+
+**Happy coding!** 🎉 
+
+For questions or issues, please check the troubleshooting section or create an issue.

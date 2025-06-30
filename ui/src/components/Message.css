@@ -1,0 +1,70 @@
+.message {
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border-radius: 8px;
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.message-role {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.message-content {
+  font-size: 1rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.message-user {
+  background-color: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.message-user .message-role {
+  color: #3b82f6;
+}
+
+.message-assistant {
+  background-color: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.message-assistant .message-role {
+  color: #22c55e;
+}
+
+.message-system {
+  background-color: rgba(156, 163, 175, 0.1);
+  border: 1px solid rgba(156, 163, 175, 0.2);
+}
+
+.message-system .message-role {
+  color: #9ca3af;
+}
+
+@media (prefers-color-scheme: light) {
+  .message-user {
+    background-color: rgba(59, 130, 246, 0.05);
+  }
+  
+  .message-assistant {
+    background-color: rgba(34, 197, 94, 0.05);
+  }
+  
+  .message-system {
+    background-color: rgba(156, 163, 175, 0.05);
+  }
+}

@@ -1,0 +1,79 @@
+.message-input-form {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.message-input {
+  flex: 1;
+  padding: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  font-family: inherit;
+  font-size: 1rem;
+  resize: none;
+  outline: none;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.message-input:focus {
+  border-color: #3b82f6;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.message-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.message-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.message-send-button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  background-color: #3b82f6;
+  color: white;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+  align-self: flex-end;
+}
+
+.message-send-button:hover:not(:disabled) {
+  background-color: #2563eb;
+}
+
+.message-send-button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.message-send-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (prefers-color-scheme: light) {
+  .message-input-form {
+    border-top-color: rgba(0, 0, 0, 0.1);
+  }
+  
+  .message-input {
+    border-color: rgba(0, 0, 0, 0.2);
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+  
+  .message-input:focus {
+    background-color: rgba(0, 0, 0, 0.02);
+  }
+  
+  .message-input::placeholder {
+    color: rgba(0, 0, 0, 0.5);
+  }
+}
