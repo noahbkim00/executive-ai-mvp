@@ -1,3 +1,5 @@
+import type { ConversationRequest, ConversationResponse } from '../types/chat';
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export interface ChatRequest {
@@ -56,4 +58,63 @@ export const chatApi = {
       );
     }
   },
+
+  async sendConversationMessage(request: ConversationRequest): Promise<ConversationResponse> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/chat/conversation`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new ApiError(
+          errorData.detail || `HTTP ${response.status}: ${response.statusText}`,
+          response.status,
+          errorData
+        );
+      }
+
+      const data: ConversationResponse = await response.json();
+      return data;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      
+      throw new ApiError(
+        'Failed to connect to the server. Please check your connection and try again.',
+        0
+      );
+    }
+  },
+
+  async getConversationProgress(conversationId: string): Promise<any> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/chat/conversation/${conversationId}/progress`);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new ApiError(
+          errorData.detail || `HTTP ${response.status}: ${response.statusText}`,
+          response.status,
+          errorData
+        );
+      }
+
+      return await response.json();
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      
+      throw new ApiError(
+        'Failed to connect to the server. Please check your connection and try again.',
+        0
+      );
+    }
+  }
 };

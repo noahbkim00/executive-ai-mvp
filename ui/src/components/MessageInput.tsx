@@ -4,9 +4,10 @@ import './MessageInput.css';
 interface MessageInputProps {
   onSendMessage: (message: string) => void;
   disabled: boolean;
+  placeholder?: string;
 }
 
-export function MessageInput({ onSendMessage, disabled }: MessageInputProps) {
+export function MessageInput({ onSendMessage, disabled, placeholder = "Describe a candidate or ask a question..." }: MessageInputProps) {
   const [message, setMessage] = useState('');
 
   const handleSubmit = (e: FormEvent) => {
@@ -31,7 +32,7 @@ export function MessageInput({ onSendMessage, disabled }: MessageInputProps) {
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Describe a candidate or ask a question..."
+        placeholder={placeholder}
         disabled={disabled}
         rows={3}
       />

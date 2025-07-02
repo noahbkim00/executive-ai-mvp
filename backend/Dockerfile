@@ -14,9 +14,9 @@ ENV PATH="/root/.local/bin:$PATH"
 # Copy dependency files
 COPY pyproject.toml poetry.lock* ./
 
-# Install project dependencies
+# Install project dependencies (production only)
 RUN poetry config virtualenvs.create false && \
-    poetry install --no-interaction --no-ansi --no-root
+    poetry install --no-interaction --no-ansi --no-root --only=main
 
 # Copy backend code
 COPY src/ ./src/
