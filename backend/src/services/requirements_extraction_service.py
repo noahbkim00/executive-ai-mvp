@@ -6,9 +6,12 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
-from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
+
+from ..services.llm_factory import LLMFactory
+from ..utils.error_handler import ErrorHandler
+from ..exceptions.service_exceptions import RequirementsExtractionError
 
 from ..models.job_requirements import (
     JobRequirements, SeniorityLevel, FunctionalArea, 
@@ -24,11 +27,8 @@ class RequirementsExtractionService:
     
     def __init__(self, db_session: AsyncSession, openai_api_key: str):
         self.db = db_session
-        self.llm = ChatOpenAI(
-            model="gpt-4o-mini",
-            temperature=0.1,  # Low temperature for structured extraction
-            api_key=openai_api_key
-        )
+        # Initialize LLM using factory for structured extraction
+        self.llm = LLMFactory.create_extraction_llm()
         
         # Parser for structured output
         self.json_parser = JsonOutputParser()
@@ -141,8 +141,29 @@ class RequirementsExtractionService:
             return job_requirements, company_info
             
         except Exception as e:
-            logger.error(f"Error extracting requirements: {str(e)}")
-            return None, None
+            logger.error(f"Error extracting requirements: {str(e)}", exc_info=True)
+            # Return empty objects instead of None for better error handling
+            return self._create_fallback_requirements(), self._create_fallback_company_info()
+    
+    def _create_fallback_requirements(self) -> JobRequirements:
+        """Create fallback job requirements when extraction fails."""
+        return JobRequirements(
+            title="Unknown Position",
+            seniority_level=SeniorityLevel.UNKNOWN,
+            functional_area=FunctionalArea.UNKNOWN,
+            key_requirements=[],
+            nice_to_haves=[],
+            deal_breakers=[]
+        )
+    
+    def _create_fallback_company_info(self) -> CompanyInfo:
+        """Create fallback company info when extraction fails."""
+        return CompanyInfo(
+            name="Unknown Company",
+            industry="Unknown",
+            stage="unknown",
+            description="Unable to extract company information"
+        )
     
     async def _enhance_company_context(self, company_info: CompanyInfo, user_context: str):
         """Enhance company information with additional context"""

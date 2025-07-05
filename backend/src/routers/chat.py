@@ -2,7 +2,6 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 import uuid
-import os
 
 from ..models.chat import ChatRequest, ChatResponse
 from ..models.conversation import ConversationRequest, ConversationResponse, ConversationSummary, ConversationPhase, ConversationStatus
@@ -11,6 +10,7 @@ from ..services.conversation_service import ConversationService
 from ..services.requirements_extraction_service import RequirementsExtractionService
 from ..services.question_generation_service import QuestionGenerationService
 from ..database import get_db
+from ..config import get_settings
 from ..logger import logger
 
 
@@ -63,9 +63,9 @@ async def send_conversation_message(
     try:
         logger.info(f"Received conversation request: {request.message[:50]}...")
         
-        # Get OpenAI API key
-        openai_api_key = os.getenv("OPENAI_API_KEY")
-        if not openai_api_key:
+        # Get settings
+        settings = get_settings()
+        if not settings.openai_api_key:
             raise HTTPException(
                 status_code=500,
                 detail="OpenAI API key not configured"
@@ -73,8 +73,8 @@ async def send_conversation_message(
         
         # Initialize services
         conversation_service = ConversationService(db)
-        requirements_service = RequirementsExtractionService(db, openai_api_key)
-        question_service = QuestionGenerationService(db, openai_api_key)
+        requirements_service = RequirementsExtractionService(db, settings.openai_api_key)
+        question_service = QuestionGenerationService(db, settings.openai_api_key)
         
         # Get or create conversation
         if request.conversation_id:
@@ -87,45 +87,73 @@ async def send_conversation_message(
         
         # Extract requirements if this is the initial message  
         if conversation.phase.value == "initial":
-            job_requirements, company_info = await requirements_service.extract_initial_requirements(
-                conversation.conversation_id, request.message
-            )
-            
-            if job_requirements and company_info:
-                # Generate follow-up questions
-                questions = await question_service.generate_questions(
-                    conversation.conversation_id, job_requirements, company_info
+            logger.info(f"Processing initial message for conversation {conversation.conversation_id}")
+            try:
+                job_requirements, company_info = await requirements_service.extract_initial_requirements(
+                    conversation.conversation_id, request.message
                 )
                 
-                # Store questions in conversation
-                await question_service.store_questions_in_conversation(
-                    conversation.conversation_id, questions
-                )
-                
-                # Move to questioning phase
-                await conversation_service.update_conversation_phase(
-                    conversation.conversation_id, 
-                    ConversationPhase.QUESTIONING,
-                    {"initial_extraction_complete": True}
-                )
-                
-                # Prepare response with first question
-                response_content = f"Great! I understand you're looking for a {job_requirements.title} for {company_info.name}. To ensure we find the perfect candidate, I'd like to ask you {len(questions)} key questions about the role and your specific needs."
-                
-                first_question = questions[0] if questions else None
-                
+                if job_requirements and company_info:
+                    logger.info(f"Successfully extracted requirements: {job_requirements.title} at {company_info.name}")
+                    # Generate follow-up questions
+                    logger.info(f"Generating follow-up questions for conversation {conversation.conversation_id}")
+                    questions = await question_service.generate_questions(
+                        conversation.conversation_id, job_requirements, company_info
+                    )
+                    logger.info(f"Generated {len(questions)} questions for conversation {conversation.conversation_id}")
+                    
+                    # Store questions in conversation
+                    await question_service.store_questions_in_conversation(
+                        conversation.conversation_id, questions
+                    )
+                    
+                    # Move to questioning phase
+                    await conversation_service.update_conversation_phase(
+                        conversation.conversation_id, 
+                        ConversationPhase.QUESTIONING,
+                        {"initial_extraction_complete": True}
+                    )
+                    
+                    # Prepare response with first question
+                    response_content = f"Great! I understand you're looking for a {job_requirements.title} for {company_info.name}. To ensure we find the perfect candidate, I'd like to ask you {len(questions)} key questions about the role and your specific needs."
+                    
+                    first_question = questions[0] if questions else None
+                    
+                    return ConversationResponse(
+                        conversation_id=conversation.conversation_id,
+                        phase=ConversationPhase.QUESTIONING,
+                        status=ConversationStatus.ACTIVE,
+                        response_content=response_content,
+                        progress={
+                            "phase": "questioning",
+                            "current_question": 1,
+                            "total_questions": len(questions),
+                            "progress_percentage": 0
+                        },
+                        next_question=f"Question 1 of {len(questions)}: {first_question.question}" if first_question else None,
+                        is_complete=False
+                    )
+                else:
+                    logger.warning(f"Failed to extract requirements from message: {request.message[:100]}...")
+                    # Return error response
+                    return ConversationResponse(
+                        conversation_id=conversation.conversation_id,
+                        phase=ConversationPhase.INITIAL,
+                        status=ConversationStatus.ACTIVE,
+                        response_content="I'm sorry, I couldn't understand your requirements. Could you please rephrase your request? For example: 'I'm looking for a VP of Engineering at Stripe'.",
+                        progress={"phase": "initial", "current_question": 0, "total_questions": 0, "progress_percentage": 0},
+                        is_complete=False
+                    )
+                    
+            except Exception as e:
+                logger.error(f"Error in initial phase processing: {str(e)}", exc_info=True)
+                # Return error response instead of raising
                 return ConversationResponse(
                     conversation_id=conversation.conversation_id,
-                    phase=ConversationPhase.QUESTIONING,
+                    phase=ConversationPhase.INITIAL,
                     status=ConversationStatus.ACTIVE,
-                    response_content=response_content,
-                    progress={
-                        "phase": "questioning",
-                        "current_question": 1,
-                        "total_questions": len(questions),
-                        "progress_percentage": 0
-                    },
-                    next_question=f"Question 1 of {len(questions)}: {first_question.question}" if first_question else None,
+                    response_content="I encountered an error processing your request. Please try again.",
+                    progress={"phase": "initial", "current_question": 0, "total_questions": 0, "progress_percentage": 0},
                     is_complete=False
                 )
         

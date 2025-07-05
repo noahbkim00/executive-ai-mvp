@@ -3,31 +3,38 @@
 from langchain_core.prompts import ChatPromptTemplate
 
 # System prompt for question generation
-QUESTION_GENERATION_SYSTEM_PROMPT = """You are an expert executive search consultant with 20+ years of experience placing C-suite and VP-level executives. You specialize in uncovering the hidden, subjective requirements that make the difference between a good hire and a perfect hire.
+QUESTION_GENERATION_SYSTEM_PROMPT = """You are an expert executive search consultant conducting a client intake session. You are speaking with a hiring manager who has engaged your search firm to find their next executive hire.
 
-Your task is to generate 3-5 insightful follow-up questions based on the initial job requirements and company context provided. These questions should:
+Based on your company research, you need to ask targeted questions that will help you understand their specific requirements and build the perfect candidate profile.
 
-1. NEVER ask about information that can be researched online (company size, revenue, industry facts, etc.)
-2. Focus on subjective, experiential, and cultural requirements
-3. Uncover potential deal-breakers or must-haves not mentioned initially
-4. Be specific to the role and company context
-5. Help identify candidates who will thrive, not just qualify
+Your questions should:
 
-Categories to explore:
-- Leadership style and team dynamics
-- Specific situational experiences (turnarounds, scaling, etc.)
-- Cultural fit indicators and work style preferences  
-- Hidden technical or domain expertise requirements
-- Compensation expectations and negotiation parameters
-- Personal motivations and career trajectory alignment
+1. Be informed by the company's stage, industry, and competitive context
+2. Focus on what the CLIENT wants in a candidate, not what candidates have done
+3. Uncover experience requirements specific to their situation
+4. Identify deal-breakers and must-haves based on company context
+5. Clarify success criteria and cultural fit requirements
+
+Question Types to Ask:
+- Experience requirements based on company stage/industry
+- Competitive landscape considerations 
+- Regulatory or compliance requirements
+- IPO/growth stage specific needs
+- Cultural and leadership style preferences
+- Success metrics and evaluation criteria
+
+Examples:
+- "Given your Series B stage, how important is it that candidates have scaled teams through similar growth phases?"
+- "Since you compete with [major competitor], how crucial is experience selling against them?"
+- "What specific industry background would be most valuable vs. nice-to-have?"
 
 Output format: Return a JSON array of question objects with this structure:
 [
     {{
         "question_id": "q1",
-        "question": "The actual question to ask",
-        "category": "leadership|experience|culture|expertise|compensation|motivation",
-        "rationale": "Why this question matters for this specific search"
+        "question": "The actual question to ask the hiring manager",
+        "category": "experience_requirements|industry_fit|competitive_context|stage_requirements|cultural_fit|success_criteria",
+        "rationale": "Why this question matters based on company research"
     }}
 ]
 """
@@ -35,46 +42,58 @@ Output format: Return a JSON array of question objects with this structure:
 # Main question generation prompt
 QUESTION_GENERATION_PROMPT = ChatPromptTemplate.from_messages([
     ("system", QUESTION_GENERATION_SYSTEM_PROMPT),
-    ("human", """Based on this executive search context, generate 3-5 insightful follow-up questions:
+    ("human", """Based on your company research, generate 3-5 targeted questions for this client intake:
 
+COMPANY RESEARCH:
 Company: {company_name}
 Industry: {industry}
-Stage: {company_stage}
-Business Model: {business_model}
+Funding Stage: {funding_stage}
+Company Size: {company_size}
+Key Competitors: {competitors}
+Recent Developments: {recent_developments}
+Regulatory Environment: {regulatory_environment}
 
-Role: {job_title}
+ROLE CONTEXT:
+Position: {job_title}
 Seniority: {seniority_level}
 Function: {functional_area}
 
-Initial Requirements:
-{initial_requirements}
+RESEARCH INSIGHTS:
+Stage Insights: {stage_insights}
+Industry Insights: {industry_insights}
+Competitive Insights: {competitive_insights}
+Leadership Needs: {leadership_needs}
+IPO Considerations: {ipo_insights}
 
-Growth Context: {growth_context}
+Based on this research, ask questions that will help you understand what specific candidate experience and background would be most valuable for THIS company's situation.
 
-Key Challenges: {key_challenges}
-
-Remember:
-- DO NOT ask about anything that can be Googled
-- Focus on subjective qualities and experiences
-- Make questions specific to this company's situation
-- Uncover hidden requirements that affect candidate success
+Focus on:
+- Experience requirements driven by their stage/industry/competition
+- Must-haves vs nice-to-haves based on company context
+- Cultural fit and leadership style needs
+- Success criteria and evaluation metrics
 
 Generate the questions as a JSON array.""")
 ])
 
 # Validation prompt to check if questions are appropriate
-QUESTION_VALIDATION_PROMPT = ChatPromptTemplate.from_template("""Review this question and determine if it asks for information that could be researched online:
+QUESTION_VALIDATION_PROMPT = ChatPromptTemplate.from_template("""Review this executive search question and determine if it's appropriate for a client intake session:
 
 Question: {question}
 
-Rules:
-- Questions about company metrics (revenue, employee count, funding) = RESEARCHABLE
-- Questions about public company facts = RESEARCHABLE  
-- Questions about personal experience = NOT RESEARCHABLE
-- Questions about preferences and style = NOT RESEARCHABLE
-- Questions about specific situations = NOT RESEARCHABLE
+Good Questions Ask About:
+- Client preferences for candidate background/experience
+- Hiring criteria and requirements
+- Success metrics and evaluation factors
+- Cultural fit and leadership style needs
+- Must-haves vs. nice-to-haves for the role
 
-Answer with just "RESEARCHABLE" or "NOT_RESEARCHABLE".""")
+Bad Questions Ask About:
+- Information that can be researched online
+- General company facts or metrics
+- What candidates have done (instead of what client wants)
+
+Answer with just "APPROPRIATE" or "INAPPROPRIATE".""")
 
 # Role-specific question templates for different functional areas
 SALES_EXECUTIVE_QUESTIONS = {

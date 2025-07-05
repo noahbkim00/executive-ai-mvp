@@ -111,13 +111,16 @@ class TestChatService:
     @patch.dict('os.environ', {'OPENAI_API_KEY': 'test-key'})
     def test_chat_service_initialization(self):
         """Test chat service initializes with API key."""
-        with patch('src.services.chat.ChatOpenAI'):
-            service = ChatService()
-            assert service is not None
+        with patch('src.services.llm_factory.LLMFactory.create_generation_llm'):
+            with patch('src.services.chat.get_settings') as mock_settings:
+                mock_settings.return_value.openai_api_key = 'test-key'
+                service = ChatService()
+                assert service is not None
 
     def test_chat_service_missing_api_key(self):
         """Test chat service raises error without API key."""
-        with patch.dict('os.environ', {}, clear=True):
+        with patch('src.services.chat.get_settings') as mock_settings:
+            mock_settings.return_value.openai_api_key = None
             with pytest.raises(ValueError, match="OPENAI_API_KEY environment variable is not set"):
                 ChatService()
 
@@ -128,19 +131,22 @@ class TestChatService:
         mock_response = Mock()
         mock_response.content = "This is a test response about software engineers."
         
-        with patch('src.services.chat.ChatOpenAI') as mock_openai:
+        with patch('src.services.llm_factory.LLMFactory.create_generation_llm') as mock_llm_factory:
             with patch('src.services.chat.ChatPromptTemplate') as mock_prompt:
-                # Mock the chain
-                mock_chain = AsyncMock()
-                mock_chain.ainvoke = AsyncMock(return_value=mock_response)
-                
-                # Mock prompt template
-                mock_prompt_instance = Mock()
-                mock_prompt.from_messages.return_value = mock_prompt_instance
-                mock_prompt_instance.__or__ = Mock(return_value=mock_chain)
-                
-                service = ChatService()
-                response = await service.get_response("What makes a good engineer?")
+                with patch('src.services.chat.get_settings') as mock_settings:
+                    mock_settings.return_value.openai_api_key = 'test-key'
+                    
+                    # Mock the chain
+                    mock_chain = AsyncMock()
+                    mock_chain.ainvoke = AsyncMock(return_value=mock_response)
+                    
+                    # Mock prompt template
+                    mock_prompt_instance = Mock()
+                    mock_prompt.from_messages.return_value = mock_prompt_instance
+                    mock_prompt_instance.__or__ = Mock(return_value=mock_chain)
+                    
+                    service = ChatService()
+                    response = await service.get_response("What makes a good engineer?")
         
         assert isinstance(response, ChatResponse)
         assert response.role == "assistant"
@@ -159,22 +165,25 @@ class TestChatService:
             ChatMessage(role="assistant", content="Previous answer")
         ]
         
-        with patch('src.services.chat.ChatOpenAI') as mock_openai:
+        with patch('src.services.llm_factory.LLMFactory.create_generation_llm') as mock_llm_factory:
             with patch('src.services.chat.ChatPromptTemplate') as mock_prompt:
-                # Mock the chain
-                mock_chain = AsyncMock()
-                mock_chain.ainvoke = AsyncMock(return_value=mock_response)
-                
-                # Mock prompt template
-                mock_prompt_instance = Mock()
-                mock_prompt.from_messages.return_value = mock_prompt_instance
-                mock_prompt_instance.__or__ = Mock(return_value=mock_chain)
-                
-                service = ChatService()
-                response = await service.get_response(
-                    "Follow-up question", 
-                    chat_history=chat_history
-                )
+                with patch('src.services.chat.get_settings') as mock_settings:
+                    mock_settings.return_value.openai_api_key = 'test-key'
+                    
+                    # Mock the chain
+                    mock_chain = AsyncMock()
+                    mock_chain.ainvoke = AsyncMock(return_value=mock_response)
+                    
+                    # Mock prompt template
+                    mock_prompt_instance = Mock()
+                    mock_prompt.from_messages.return_value = mock_prompt_instance
+                    mock_prompt_instance.__or__ = Mock(return_value=mock_chain)
+                    
+                    service = ChatService()
+                    response = await service.get_response(
+                        "Follow-up question", 
+                        chat_history=chat_history
+                    )
         
         assert isinstance(response, ChatResponse)
         assert response.content == "Follow-up response based on history."
@@ -183,21 +192,24 @@ class TestChatService:
     @pytest.mark.asyncio
     async def test_get_response_error_handling(self):
         """Test error handling in get_response."""
-        with patch('src.services.chat.ChatOpenAI') as mock_openai:
+        with patch('src.services.llm_factory.LLMFactory.create_generation_llm') as mock_llm_factory:
             with patch('src.services.chat.ChatPromptTemplate') as mock_prompt:
-                # Mock the chain to raise an exception
-                mock_chain = AsyncMock()
-                mock_chain.ainvoke = AsyncMock(side_effect=Exception("OpenAI API error"))
-                
-                # Mock prompt template
-                mock_prompt_instance = Mock()
-                mock_prompt.from_messages.return_value = mock_prompt_instance
-                mock_prompt_instance.__or__ = Mock(return_value=mock_chain)
-                
-                service = ChatService()
-                
-                with pytest.raises(Exception):
-                    await service.get_response("Test message")
+                with patch('src.services.chat.get_settings') as mock_settings:
+                    mock_settings.return_value.openai_api_key = 'test-key'
+                    
+                    # Mock the chain to raise an exception
+                    mock_chain = AsyncMock()
+                    mock_chain.ainvoke = AsyncMock(side_effect=Exception("OpenAI API error"))
+                    
+                    # Mock prompt template
+                    mock_prompt_instance = Mock()
+                    mock_prompt.from_messages.return_value = mock_prompt_instance
+                    mock_prompt_instance.__or__ = Mock(return_value=mock_chain)
+                    
+                    service = ChatService()
+                    
+                    with pytest.raises(Exception):
+                        await service.get_response("Test message")
 
 
 class TestChatModels:

@@ -13,6 +13,15 @@ export interface ChatResponse {
   timestamp: string; // ISO string from backend
 }
 
+export interface ConversationProgress {
+  phase: "initial" | "questioning" | "completed" | "error";
+  status: "active" | "paused" | "completed" | "abandoned";
+  current_question: number;
+  total_questions: number;
+  progress_percentage: number;
+  is_complete: boolean;
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -92,7 +101,7 @@ export const chatApi = {
     }
   },
 
-  async getConversationProgress(conversationId: string): Promise<any> {
+  async getConversationProgress(conversationId: string): Promise<ConversationProgress> {
     try {
       const response = await fetch(`${API_BASE_URL}/api/chat/conversation/${conversationId}/progress`);
       

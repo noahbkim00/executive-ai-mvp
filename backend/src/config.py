@@ -19,12 +19,17 @@ class Settings(BaseSettings):
         "http://localhost:8000"
     ]
     
-    # OpenAI Configuration
+    # AI API Keys
     openai_api_key: str = ""
+    serper_api_key: str = ""
     
     # Optional LangChain Configuration
     langchain_tracing_v2: str = "false"
     langchain_api_key: str = ""
+    
+    # Research Configuration
+    enable_web_search: bool = True
+    research_timeout_seconds: int = 30
     
     class Config:
         env_file = ".env"

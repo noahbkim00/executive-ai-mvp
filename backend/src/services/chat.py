@@ -1,29 +1,26 @@
-import os
 import uuid
 from typing import List
 
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
 from ..models.chat import ChatMessage, ChatResponse
+from ..config import get_settings
+from ..services.llm_factory import LLMFactory
 from ..logger import logger
 
 
 class ChatService:
     def __init__(self):
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
+        settings = get_settings()
+        if not settings.openai_api_key:
             raise ValueError(
                 "OPENAI_API_KEY environment variable is not set. "
                 "Please set it in your .env file or environment."
             )
         
-        self.llm = ChatOpenAI(
-            model="gpt-4o-mini",
-            temperature=0.7,
-            api_key=api_key
-        )
+        # Initialize LLM using factory
+        self.llm = LLMFactory.create_generation_llm()
         
         # System prompt for candidate analysis
         self.system_prompt = """You are an AI assistant specialized in analyzing and discussing candidates 
