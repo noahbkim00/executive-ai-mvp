@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     enable_web_search: bool = True
     research_timeout_seconds: int = 30
     
+    # LangGraph Feature Flag
+    use_langgraph: bool = True  # Phase 4 Complete - Full workflow with question generation
+    
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

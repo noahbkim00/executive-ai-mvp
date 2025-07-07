@@ -112,16 +112,19 @@ export function ChatContainer() {
         messages={conversationState.messages} 
         isLoading={conversationState.isLoading} 
         error={conversationState.error} 
-        onClearError={handleClearError} 
+        onClearError={handleClearError}
+        isCompleted={conversationState.phase === 'completed'}
       />
       <MessageInput 
         onSendMessage={handleSendMessage} 
-        disabled={conversationState.isLoading}
+        disabled={conversationState.isLoading || conversationState.phase === 'completed'}
         placeholder={
           conversationState.phase === 'initial' 
             ? "Describe the executive role you're looking to fill..."
             : conversationState.phase === 'questioning'
             ? "Your answer..."
+            : conversationState.phase === 'completed'
+            ? "Conversation completed"
             : "Send a message..."
         }
       />

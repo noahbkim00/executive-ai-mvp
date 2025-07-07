@@ -8,9 +8,10 @@ interface MessageListProps {
   isLoading: boolean;
   error?: string | null;
   onClearError?: () => void;
+  isCompleted?: boolean;
 }
 
-export function MessageList({ messages, isLoading, error, onClearError }: MessageListProps) {
+export function MessageList({ messages, isLoading, error, onClearError, isCompleted = false }: MessageListProps) {
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -25,9 +26,20 @@ export function MessageList({ messages, isLoading, error, onClearError }: Messag
         </div>
       )}
       
-      {messages.map((message) => (
-        <Message key={message.id} message={message} />
-      ))}
+      {messages.map((message, index) => {
+        // Check if this is the last assistant message and conversation is completed
+        const isLastAssistantMessage = message.role === 'assistant' && 
+          index === messages.length - 1;
+        const isCompletionMessage = isCompleted && isLastAssistantMessage;
+        
+        return (
+          <Message 
+            key={message.id} 
+            message={message} 
+            isCompleted={isCompletionMessage}
+          />
+        );
+      })}
       
       {isLoading && (
         <div className="message-list-loading">
