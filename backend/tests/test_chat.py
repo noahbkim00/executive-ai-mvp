@@ -1,13 +1,15 @@
-"""Tests for chat endpoint and service."""
+"""Tests for conversation endpoint and service."""
 
 import pytest
 from unittest.mock import Mock, patch, AsyncMock
 from fastapi.testclient import TestClient
-from datetime import datetime
+from datetime import datetime, timezone
+from uuid import uuid4
 
 from src.main import app
 from src.services.chat import ChatService
 from src.models.chat import ChatMessage, ChatResponse
+from src.models.conversation import ConversationRequest, ConversationResponse, ConversationPhase, ConversationStatus
 
 
 @pytest.fixture
@@ -16,93 +18,159 @@ def client():
     return TestClient(app)
 
 
-class TestChatAPI:
-    """Test cases for chat API endpoints."""
+class TestConversationAPI:
+    """Test cases for conversation API endpoints."""
 
-    def test_chat_endpoint_success(self, client):
-        """Test successful chat endpoint call."""
-        # Mock the chat service to avoid OpenAI API calls in tests
-        mock_response = ChatResponse(
-            id="test-123",
-            role="assistant",
-            content="This is a test response about candidates.",
-            timestamp=datetime.utcnow()
-        )
+    def test_conversation_endpoint_success(self, client):
+        """Test successful conversation endpoint call."""
+        # Mock the LangGraph workflow and database dependencies
+        mock_conversation_id = uuid4()
         
-        with patch('src.routers.chat.ChatService') as mock_service_class:
-            mock_service = Mock()
-            mock_service.get_response = AsyncMock(return_value=mock_response)
-            mock_service_class.return_value = mock_service
+        with patch('src.routers.chat.get_settings') as mock_settings:
+            mock_settings.return_value.openai_api_key = "test-key"
             
-            response = client.post(
-                "/api/chat/",
-                json={"message": "What makes a good engineer?"}
-            )
+            with patch('src.routers.chat._process_with_langgraph') as mock_process:
+                mock_process.return_value = ConversationResponse(
+                    conversation_id=mock_conversation_id,
+                    phase=ConversationPhase.QUESTIONING,
+                    status=ConversationStatus.ACTIVE,
+                    response_content="Great! I understand you're looking for a Head of Sales. To ensure we find the perfect candidate, I'd like to ask you 5 key questions about the role and your specific needs.",
+                    progress={
+                        "phase": "questioning",
+                        "current_question": 1,
+                        "total_questions": 5,
+                        "progress_percentage": 0
+                    },
+                    next_question="Question 1 of 5: What specific experience requirements do you have?",
+                    is_complete=False
+                )
+                
+                response = client.post(
+                    "/api/chat/conversation",
+                    json={"message": "I'm looking for a Head of Sales"}
+                )
         
         assert response.status_code == 200
         data = response.json()
-        assert data["id"] == "test-123"
-        assert data["role"] == "assistant"
-        assert data["content"] == "This is a test response about candidates."
-        assert "timestamp" in data
+        assert "conversation_id" in data
+        assert data["phase"] == "questioning"
+        assert data["status"] == "active"
+        assert "response_content" in data
+        assert "progress" in data
+        assert data["is_complete"] is False
 
-    def test_chat_endpoint_empty_message(self, client):
-        """Test chat endpoint with empty message."""
+    def test_conversation_endpoint_empty_message(self, client):
+        """Test conversation endpoint with empty message."""
         response = client.post(
-            "/api/chat/",
+            "/api/chat/conversation",
             json={"message": ""}
         )
         
         assert response.status_code == 422  # Validation error
 
-    def test_chat_endpoint_missing_message(self, client):
-        """Test chat endpoint with missing message field."""
+    def test_conversation_endpoint_missing_message(self, client):
+        """Test conversation endpoint with missing message field."""
         response = client.post(
-            "/api/chat/",
+            "/api/chat/conversation",
             json={}
         )
         
         assert response.status_code == 422  # Validation error
 
-    def test_chat_endpoint_invalid_json(self, client):
-        """Test chat endpoint with invalid JSON."""
+    def test_conversation_endpoint_invalid_json(self, client):
+        """Test conversation endpoint with invalid JSON."""
         response = client.post(
-            "/api/chat/",
+            "/api/chat/conversation",
             data="invalid json",
             headers={"Content-Type": "application/json"}
         )
         
         assert response.status_code == 422
 
-    def test_chat_endpoint_service_error(self, client):
-        """Test chat endpoint when service raises an error."""
-        with patch('src.routers.chat.ChatService') as mock_service_class:
-            mock_service = Mock()
-            mock_service.get_response = AsyncMock(side_effect=Exception("Service error"))
-            mock_service_class.return_value = mock_service
+    def test_conversation_endpoint_service_error(self, client):
+        """Test conversation endpoint when service raises an error."""
+        with patch('src.routers.chat.get_settings') as mock_settings:
+            mock_settings.return_value.openai_api_key = "test-key"
             
-            response = client.post(
-                "/api/chat/",
-                json={"message": "Test message"}
-            )
+            with patch('src.routers.chat._process_with_langgraph') as mock_process:
+                mock_process.side_effect = Exception("Service error")
+                
+                response = client.post(
+                    "/api/chat/conversation",
+                    json={"message": "Test message"}
+                )
         
         assert response.status_code == 500
         data = response.json()
         assert "Failed to process your message" in data["detail"]
 
-    def test_chat_endpoint_missing_api_key(self, client):
-        """Test chat endpoint when OpenAI API key is missing."""
-        with patch('src.routers.chat.ChatService') as mock_service_class:
-            mock_service_class.side_effect = ValueError("OPENAI_API_KEY environment variable is not set")
+    def test_conversation_endpoint_missing_api_key(self, client):
+        """Test conversation endpoint when OpenAI API key is missing."""
+        with patch('src.routers.chat.get_settings') as mock_settings:
+            mock_settings.return_value.openai_api_key = None
             
             response = client.post(
-                "/api/chat/",
+                "/api/chat/conversation",
                 json={"message": "Test message"}
             )
         
         assert response.status_code == 500
         data = response.json()
-        assert "Chat service unavailable" in data["detail"]
+        assert "OpenAI API key not configured" in data["detail"]
+
+    def test_conversation_summary_endpoint(self, client):
+        """Test conversation summary endpoint."""
+        mock_conversation_id = uuid4()
+        
+        with patch('src.routers.chat.ConversationService') as mock_conv_service_class:
+            mock_conv_service = Mock()
+            mock_conversation = Mock(
+                conversation_id=mock_conversation_id,
+                phase="completed",
+                status="completed",
+                questions_responses=[],
+                total_questions=5,
+                current_question_index=5,
+                metadata={},
+                created_at=datetime.now(timezone.utc)
+            )
+            mock_conv_service.get_conversation = AsyncMock(return_value=mock_conversation)
+            mock_conv_service_class.return_value = mock_conv_service
+            
+            response = client.get(f"/api/chat/conversation/{mock_conversation_id}")
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data["conversation_id"] == str(mock_conversation_id)
+        assert data["phase"] == "completed"
+        assert data["status"] == "completed"
+        assert "total_messages" in data
+        assert "questions_asked" in data
+        assert "questions_answered" in data
+
+    def test_conversation_progress_endpoint(self, client):
+        """Test conversation progress endpoint."""
+        mock_conversation_id = uuid4()
+        mock_progress = {
+            "phase": "questioning",
+            "current_question": 3,
+            "total_questions": 5,
+            "progress_percentage": 60.0
+        }
+        
+        with patch('src.routers.chat.ConversationService') as mock_conv_service_class:
+            mock_conv_service = Mock()
+            mock_conv_service.get_conversation_progress = AsyncMock(return_value=mock_progress)
+            mock_conv_service_class.return_value = mock_conv_service
+            
+            response = client.get(f"/api/chat/conversation/{mock_conversation_id}/progress")
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data["phase"] == "questioning"
+        assert data["current_question"] == 3
+        assert data["total_questions"] == 5
+        assert data["progress_percentage"] == 60.0
 
 
 class TestChatService:
